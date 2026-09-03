@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f6a6bd" />
+  <title>Tabiori | Seoul Trip</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div class="brand">✈️ <span>Tabiori</span></div>
+      <div class="trip-title">
+        <div class="stamp">🇰🇷</div>
+        <div>
+          <p class="eyebrow">DIGITAL TRAVEL BOOK</p>
+          <h1>Seoul Trip</h1>
+          <p class="trip-date">2026.09.05 SAT — 09.07 MON</p>
+        </div>
+      </div>
+      <div class="trip-badge">♡ 2泊3日 ♡</div>
+    </header>
+
+    <section class="day-tabs" aria-label="日程選択">
+      <button class="day-tab active" data-day="0">DAY 1<span>9/5</span></button>
+      <button class="day-tab" data-day="1">DAY 2<span>9/6</span></button>
+      <button class="day-tab" data-day="2">DAY 3<span>9/7</span></button>
+    </section>
+
+    <section class="next-section">
+      <div class="section-label">⭐ NEXT PLAN</div>
+      <article class="next-card" id="nextCard"></article>
+      <button class="adjust-button" id="openAdjust">🔄 スケジュールを調整</button>
+    </section>
+
+    <section class="schedule-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">🌷 TODAY'S PLAN</p>
+          <h2 id="dayHeading"></h2>
+        </div>
+        <button class="today-button" id="todayButton">今日</button>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <footer>
+      <span>Made with ♡ for travel memories</span>
+      <strong>Tabiori</strong>
+    </footer>
+  </main>
+
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <section class="adjust-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header"><div><p class="section-label">🔄 SCHEDULE ADJUST</p><h2>スケジュールを調整</h2></div><button class="close-button" id="closeAdjust">×</button></div>
+      <div class="current-time-box"><span>現在時刻</span><strong id="currentTime"></strong><button id="refreshTime">↻ 更新</button></div>
+      <p class="modal-help">予定がずれたときだけ、残りの予定を調整できます。変更内容はこの端末に保存されます。</p>
+      <div class="adjust-list" id="adjustList"></div>
+      <div class="modal-actions"><button class="reset-button" id="resetSchedule">元の予定に戻す</button><button class="save-button" id="saveSchedule">保存する</button></div>
+    </section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
