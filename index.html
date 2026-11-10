@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f6a6bd" />
+  <title>Tabiori | Digital Travel Book</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <section id="authGate" class="auth-gate hidden" aria-label="Tabioriログイン">
+    <div class="auth-card">
+      <div class="auth-brand">✈️ <span>Tabiori</span></div>
+      <p class="auth-kicker">DIGITAL TRAVEL BOOK</p>
+      <h1 id="authTitle">ログイン</h1>
+      <p id="authDescription" class="auth-description">旅行データを安全に保存するため、ログインしてください。</p>
+      <label id="authEmailLabel" class="auth-label" for="authEmail">メールアドレス</label>
+      <input id="authEmail" class="auth-input" type="email" autocomplete="email" placeholder="example@email.com">
+      <label id="authPasswordLabel" class="auth-label" for="authPassword">パスワード</label>
+      <input id="authPassword" class="auth-input" type="password" autocomplete="current-password" placeholder="6文字以上">
+      <p id="authMessage" class="auth-message" role="status"></p>
+      <button type="button" id="authSubmit" class="auth-submit">ログイン</button>
+      <button type="button" id="authForgot" class="auth-toggle">パスワードを忘れた場合</button>
+      <button type="button" id="authToggle" class="auth-toggle">新規登録はこちら</button>
+      <button type="button" id="authLogout" class="auth-logout hidden">ログアウト</button>
+    </div>
+  </section>
+
+  <section id="tripListView" class="trip-list-view">
+    <header class="trip-list-header">
+      <div class="brand">tabiori</div>
+      <div class="trip-list-subtitle">✈️ 旅行を選択</div>
+    </header>
+    <main id="tripCards" class="trip-cards"></main>
+    <button type="button" id="addTripButton" class="add-trip-button">＋ 旅行を追加</button>
+  </section>
+
+  <section id="tripDetailView" class="trip-detail-view hidden">
+    <button type="button" id="backToTrips" class="back-to-trips">‹ 旅行一覧</button>
+  <button type="button" class="weather-widget" id="weatherWidget" aria-label="天気の都市を設定">
+    <span class="weather-main"><span class="weather-icon color-emoji" aria-hidden="true">☀️</span><span class="weather-text">天気不明</span><span class="weather-end-icon color-emoji" aria-hidden="true">☔️</span></span>
+  </button>
+  <div class="timezone-diff" id="timezoneDiff" aria-label="日本との時差"></div>
+  <main class="app-shell">
+    <header class="hero">
+      <div class="brand">✈️ <span>Tabiori</span></div>
+      <div class="trip-title">
+        <div class="stamp" id="tripFlag"></div>
+        <div>
+          <p class="eyebrow">DIGITAL TRAVEL BOOK</p>
+          <h1 id="tripName">Seoul Trip</h1>
+          <p class="trip-date" id="tripDate">2026.09.05 SAT — 09.07 MON</p>
+        </div>
+      </div>
+      <div class="trip-badge" id="tripBadge">♡ 2泊3日 ♡</div>
+    </header>
+
+    <div class="trip-tools">
+      <div class="trip-tools-top-row">
+        <button type="button" class="expense-entry-button" id="openExpenses">💰️ 旅行費用</button>
+        <button type="button" class="trip-tool-button" id="openTripPdfs">📋️資料</button>
+      </div>
+      <div class="trip-tools-row">
+        <button type="button" class="trip-tool-button" id="openPacking">🧳 持ち物</button>
+        <button type="button" class="trip-tool-button" id="openTripMemo">📝 旅行メモ</button>
+      </div>
+    </div>
+
+    <section class="day-tabs" id="dayTabs" aria-label="日程選択"></section>
+
+    <section class="next-section">
+      <div class="section-label">⭐ NEXT PLAN</div>
+      <article class="next-card" id="nextCard"></article>
+    </section>
+
+    <section class="schedule-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">🌷 TODAY'S PLAN</p>
+          <h2 id="dayHeading"></h2>
+        </div>
+        <button class="today-button" id="todayButton">今日</button>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <footer>
+      <span>Made with ♡ for travel memories</span>
+      <strong>Tabiori</strong>
+    </footer>
+  </main>
+
+
+<div class="modal-backdrop hidden" id="detailBackdrop">
+  <section class="adjust-modal detail-modal" role="dialog" aria-modal="true">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <p class="section-label" id="planFormSectionLabel">PLAN</p>
+        <h2 id="planFormTitle">予定を編集</h2>
+      </div>
+      <button type="button" class="close-button detail-close-x" id="closeDetail" aria-label="閉じる">×</button>
+    </div>
+    <div class="detail-edit-content">
+      <label class="time-input-label" for="detailEditTitle">予定名</label>
+      <input id="detailEditTitle" type="text" class="time-edit-input" placeholder="例：カフェ">
+
+      <label class="time-input-label" for="detailEditDay">日付</label>
+      <select id="detailEditDay" class="time-edit-input detail-date-select" aria-label="予定の日付"></select>
+
+      <label class="time-input-label" for="detailEditTime">時間</label>
+      <div class="plan-time-range-row">
+        <input id="detailEditTime" type="time" class="time-edit-input" aria-label="開始時間">
+        <span>〜</span>
+        <input id="detailEditEndTime" type="time" class="time-edit-input" aria-label="終了時間（任意）">
+      </div>
+
+      <label class="time-input-label">アイコン</label>
+      <div class="icon-picker" id="detailEditIconPicker" role="group" aria-label="予定のアイコンを選択">
+        <button type="button" class="icon-choice" data-detail-icon="✈️" aria-label="飛行機">✈️</button>
+        <button type="button" class="icon-choice" data-detail-icon="🚆" aria-label="電車">🚆</button>
+        <button type="button" class="icon-choice" data-detail-icon="🚶‍♀️‍➡️" aria-label="徒歩">🚶‍♀️‍➡️</button>
+        <button type="button" class="icon-choice" data-detail-icon="🚌" aria-label="バス">🚌</button>
+        <button type="button" class="icon-choice" data-detail-icon="🚕" aria-label="タクシー">🚕</button>
+        <button type="button" class="icon-choice" data-detail-icon="🏨" aria-label="ホテル">🏨</button>
+        <button type="button" class="icon-choice" data-detail-icon="🍽️" aria-label="食事">🍽️</button>
+        <button type="button" class="icon-choice" data-detail-icon="☕️" aria-label="カフェ">☕️</button>
+        <button type="button" class="icon-choice" data-detail-icon="🛍️" aria-label="買い物">🛍️</button>
+        <button type="button" class="icon-choice" data-detail-icon="🏯" aria-label="観光">🏯</button>
+        <button type="button" class="icon-choice" data-detail-icon="🕌" aria-label="チケット・施設">🕌</button>
+        <button type="button" class="icon-choice" data-detail-icon="💱" aria-label="両替・お金">💱</button>
+        <button type="button" class="icon-choice" data-detail-icon="👘" aria-label="その他">👘</button>
+        <button type="button" class="icon-choice" data-detail-icon="➕️" aria-label="カスタム絵文字">➕️</button>
+      </div>
+
+      <label class="time-input-label" for="detailEditMemo">メモ（任意）</label>
+      <textarea id="detailEditMemo" class="time-edit-input add-plan-textarea" rows="4" placeholder="場所やメモなど"></textarea>
+
+      <label class="time-input-label" for="detailEditUrl">URL（任意）</label>
+      <input id="detailEditUrl" type="url" class="time-edit-input" placeholder="https://example.com">
+    </div>
+
+    <div class="detail-actions">
+      <button type="button" class="detail-delete-button" id="deleteDetailPlan">削除</button>
+      <button type="button" class="detail-save-button" id="saveDetail">変更</button>
+    </div>
+  </section>
+</div>
+
+  </section>
+
+  <div class="modal-backdrop hidden" id="packingBackdrop">
+    <section class="adjust-modal trip-tool-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="packing-heading-block"><p class="section-label">PACKING LIST</p><div class="packing-title-row"><h2>持ち物チェックリスト</h2></div></div>
+        <button type="button" class="close-button" id="closePacking" aria-label="閉じる">×</button>
+      </div>
+      <div class="tool-list-content">
+        <div class="packing-default-edit-row"><button type="button" id="openPackingDefault" class="packing-default-link">デフォルトを編集</button></div>
+        <div class="packing-container-add-row packing-action-row">
+          <button type="button" id="packingUndo" class="packing-history-button" aria-label="元に戻す">↩</button>
+          <button type="button" id="packingRedo" class="packing-history-button" aria-label="やり直す">↪</button>
+          <button type="button" id="addPackingItemTop" class="packing-add-top-button">持ち物を追加</button>
+          <button type="button" id="addPackingContainer" class="packing-container-add-button">入れ物を追加</button>
+        </div>
+        <div id="packingList" class="packing-list"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="packingDefaultBackdrop">
+    <section class="adjust-modal trip-tool-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="packing-heading-block"><p class="section-label">DEFAULT PACKING LIST</p><div class="packing-title-row"><h2>デフォルトのチェックリスト</h2></div></div>
+        <button type="button" class="close-button" id="closePackingDefault" aria-label="閉じる">×</button>
+      </div>
+      <p class="packing-default-note">ここで変更した内容は、新しく追加する旅行と、まだ終了していない既存の旅行に反映されます。終了済みの旅行は変更されません。</p>
+      <div class="packing-container-add-row packing-action-row">
+        <button type="button" id="packingDefaultUndo" class="packing-history-button" aria-label="元に戻す">↩</button>
+        <button type="button" id="packingDefaultRedo" class="packing-history-button" aria-label="やり直す">↪</button>
+        <button type="button" id="addPackingDefaultItemTop" class="packing-add-top-button">持ち物を追加</button>
+        <button type="button" id="addPackingDefaultContainer" class="packing-container-add-button">入れ物を追加</button>
+      </div>
+      <div id="packingDefaultList" class="packing-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="reset-button" id="cancelPackingDefault">キャンセル</button>
+        <button type="button" class="save-button" id="savePackingDefault">保存</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="packingItemAddBackdrop">
+    <section class="adjust-modal trip-tool-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">ADD PACKING ITEM</p><h2>持ち物を追加</h2></div>
+        <button type="button" class="close-button" id="closePackingItemAdd" aria-label="閉じる">×</button>
+      </div>
+      <div class="packing-item-add-form">
+        <label>持ち物名<input id="packingItemAddName" type="text" class="time-edit-input" placeholder="持ち物を入力"></label>
+        <label>入れ物<select id="packingItemAddContainer" class="time-edit-input packing-container-select" aria-label="入れ物を選択"></select></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="reset-button" id="cancelPackingItemAdd">キャンセル</button>
+        <button type="button" class="save-button" id="savePackingItemAdd">追加</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="tripMemoBackdrop">
+    <section class="adjust-modal trip-tool-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">TRIP MEMO</p><h2>旅行メモ</h2></div>
+        <button type="button" class="close-button" id="closeTripMemo" aria-label="閉じる">×</button>
+      </div>
+      <div class="tool-list-content">
+        <textarea id="tripMemoInput" class="time-edit-input add-plan-textarea trip-memo-textarea" rows="12" placeholder="旅行中に覚えておきたいことをメモ"></textarea>
+        <button type="button" id="saveTripMemo" class="pink-action-button full-width">保存</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="tripPdfsBackdrop">
+    <section class="adjust-modal trip-tool-modal trip-pdf-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">TRAVEL DOCUMENTS</p><h2>📋️資料</h2></div>
+        <button type="button" class="close-button" id="closeTripPdfs" aria-label="閉じる">×</button>
+      </div>
+      <div class="trip-pdf-content">
+        <p class="trip-pdf-note">旅程表・予約確認書などの資料を旅行ごとに保存できます。</p>
+        <label class="pdf-upload-button" for="tripPdfInput">＋資料を追加</label>
+        <input id="tripPdfInput" class="hidden" type="file" accept="application/pdf,.pdf" multiple>
+        <div id="tripPdfList" class="trip-pdf-list"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="tripPdfPreviewBackdrop">
+    <section class="adjust-modal trip-pdf-preview-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">PDF PREVIEW</p><h2 id="tripPdfPreviewTitle">PDF</h2></div>
+        <button type="button" class="close-button" id="closeTripPdfPreview" aria-label="閉じる">×</button>
+      </div>
+      <div class="trip-pdf-frame-wrap" id="tripPdfFrameWrap">
+        <div id="tripPdfPages" class="trip-pdf-pages" aria-label="PDFプレビュー"></div>
+      </div>
+    </section>
+  </div>
+
+  <section id="expenseView" class="expense-view hidden">
+    <button type="button" id="expenseBack" class="back-to-trips">‹ 旅行詳細</button>
+    <main class="app-shell expense-shell">
+      <header class="expense-page-header">
+        <div>
+          <p class="section-label">💰 TRAVEL EXPENSES</p>
+          <h1>旅行費用</h1>
+        </div>
+        <div class="expense-total-box"><div class="expense-total-block"><span>1人あたり</span><strong id="expenseTotal">¥0</strong></div><div class="expense-total-divider"></div><div class="expense-total-block"><span>旅行全体の総額</span><strong id="expenseGrandTotal">¥0</strong></div></div>
+      </header>
+      <section class="expense-list-section">
+        <div id="expenseList"></div>
+        <button type="button" id="addExpenseButton" class="add-plan-button">＋ 費用を追加</button>
+      </section>
+    </main>
+  </section>
+
+  <div class="modal-backdrop hidden" id="expenseEditBackdrop">
+    <section class="adjust-modal expense-edit-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">EXPENSE</p><h2 id="expenseModalTitle">費用を追加</h2></div>
+        <button type="button" class="close-button" id="closeExpenseEdit" aria-label="閉じる">×</button>
+      </div>
+      <div class="detail-edit-content">
+        <label class="time-input-label" for="expenseCategory">カテゴリー</label>
+        <select id="expenseCategory" class="time-edit-input"></select>
+        <div id="expenseCustomWrap" class="hidden">
+          <label class="time-input-label" for="expenseCustomCategory">カテゴリー名</label>
+          <input id="expenseCustomCategory" type="text" class="time-edit-input" placeholder="例：お土産送料">
+        </div>
+
+        <label class="time-input-label" for="expenseAmount">金額</label>
+        <input id="expenseAmount" type="number" class="time-edit-input" inputmode="numeric" min="0" step="1" placeholder="35000">
+
+        <label class="time-input-label">人数</label>
+        <input id="expensePeople" type="hidden" value="1">
+        <div id="expensePeopleButtons" class="expense-people-buttons" role="group" aria-label="人数">
+          <button type="button" class="expense-people-button is-selected" data-people="1">1人</button>
+          <button type="button" class="expense-people-button" data-people="2">2人</button>
+          <button type="button" class="expense-people-button" data-people="3">3人</button>
+          <button type="button" class="expense-people-button" data-people="4">4人</button>
+        </div>
+        <p id="expensePerPersonPreview" class="expense-per-person-preview">1人あたり ¥0</p>
+
+        <label class="time-input-label" for="expenseCurrency">通貨</label>
+        <select id="expenseCurrency" class="time-edit-input"></select>
+        <button type="button" id="showAllCurrencies" class="expense-more-currency-button">その他の通貨を表示</button>
+
+        <label class="time-input-label" for="expenseDate">日付（任意）</label>
+        <input id="expenseDate" type="date" class="time-edit-input">
+
+        <label class="time-input-label" for="expenseMemo">メモ（任意）</label>
+        <textarea id="expenseMemo" class="time-edit-input add-plan-textarea" rows="4" placeholder="内容や支払先など"></textarea>
+      </div>
+      <div class="detail-actions">
+        <button type="button" class="detail-delete-button hidden" id="expenseDelete">削除</button>
+        <button type="button" class="detail-save-button" id="expenseSave">追加</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="weatherCityBackdrop">
+    <section class="adjust-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">WEATHER</p><h2>天気の都市を設定</h2></div>
+        <button type="button" class="close-button" id="closeWeatherCity" aria-label="閉じる">×</button>
+      </div>
+      <div class="time-edit-content">
+        <label class="time-input-label" for="weatherCityInput">都市</label>
+        <input id="weatherCityInput" type="text" class="time-edit-input" placeholder="例：Seoul / Taipei">
+        <p class="weather-city-note">旅行先の都市名を英語で入力してください。</p>
+        <button type="button" class="time-save-button" id="saveWeatherCity">設定</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="tripEditBackdrop">
+    <section class="adjust-modal trip-edit-modal" role="dialog" aria-modal="true">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div><p class="section-label">EDIT TRIP</p><h2>旅行を編集</h2></div>
+        <button type="button" class="close-button" id="closeTripEdit" aria-label="閉じる">×</button>
+      </div>
+      <div class="detail-edit-content">
+        <label class="time-input-label" for="tripEditTitle">旅行名</label>
+        <input id="tripEditTitle" type="text" class="time-edit-input" placeholder="例：ソウル2泊3日">
+        <label class="time-input-label" for="tripEditFlag">国旗</label>
+        <input id="tripEditFlag" type="text" class="time-edit-input" placeholder="国旗を入力">
+        <div class="date-label-row">
+          <label class="time-input-label" for="tripEditStart">日程</label>
+          <button type="button" class="date-unset-button" id="tripDateUnsetButton">未定</button>
+        </div>
+        <div class="date-range-row">
+          <input id="tripEditStart" type="date" class="time-edit-input">
+          <span>〜</span>
+          <input id="tripEditEnd" type="date" class="time-edit-input">
+        </div>
+        <label class="time-input-label" for="tripEditHotel">ホテル（任意）</label>
+        <input id="tripEditHotel" type="text" class="time-edit-input" placeholder="ホテル名">
+      </div>
+      <div class="detail-actions">
+        <button type="button" class="detail-delete-button" id="deleteTrip">削除</button>
+        <button type="button" class="detail-save-button" id="saveTrip">保存</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
